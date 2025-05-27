@@ -8,9 +8,8 @@ set "scriptName=%~nx0"
 
 :: -----------------------
 :: Update URLs on GitHub (edit these to your repo/raw URLs after upload)
-set "versionUrl=https://raw.githubusercontent.com/yourusername/yunique-all-in-one/main/version.txt"
-set "updateUrl=https://raw.githubusercontent.com/yourusername/yunique-all-in-one/main/yunique-all-in-one.bat"
-
+set "versionUrl=https://raw.githubusercontent.com/chimadaking/Yunique-all-in-one/main/version.txt"
+set "updateUrl=https://raw.githubusercontent.com/chimadaking/Yunique-all-in-one/main/yunique-all-in-one.bat"
 :: -----------------------
 :: Auto-elevate to admin if needed
 net session >nul 2>&1
