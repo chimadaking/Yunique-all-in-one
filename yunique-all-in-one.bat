@@ -1,221 +1,105 @@
 @echo off
-setlocal EnableExtensions EnableDelayedExpansion
-
-:: -----------------------
-:: Version info
-set "version=0.9"
-set "scriptName=%~nx0"
-
-:: -----------------------
-:: Update URLs on GitHub (edit these to your repo/raw URLs after upload)
-set "versionUrl=https://raw.githubusercontent.com/chimadaking/Yunique-all-in-one/main/version.txt"
-set "updateUrl=https://raw.githubusercontent.com/chimadaking/Yunique-all-in-one/main/yunique-all-in-one.bat"
-:: -----------------------
-:: Auto-elevate to admin if needed
+title Yunique All-in-One v1.0
+:: Auto-elevate to Admin
 net session >nul 2>&1
 if %errorlevel% neq 0 (
-    echo Requesting administrative privileges...
+    echo Requesting administrator privileges...
     powershell -Command "Start-Process '%~f0' -Verb RunAs"
     exit /b
 )
 
-:: -----------------------
-:: Check for updates function
-call :CheckForUpdates
-
-:: -----------------------
-:: Show main menu loop
-:MainMenu
+:MENU
 cls
-echo ================================
-echo   Yunique All-in-One Tool v%version%
-echo ================================
-echo.
-echo [1] Reset User Password
-echo [2] Rename User
-echo [3] Create New User
-echo [4] Delete User
-echo [5] Microsoft Defender Control Panel
-echo [6] Activate Windows/Office
-echo [7] Online Activation (Office & Windows)
+echo ============================================
+echo         Yunique All-in-One v1.0
+echo ============================================
+echo [1] Show System Info
+echo [2] Activate Windows & Office (Online)
+echo [3] Activate IDM (Online)
+echo [4] Disable Microsoft Defender (Temp/Permanent)
+echo [5] Reset All Local User Passwords to Blank
+echo [6] Clean Temp, Recycle Bin & Old Updates
+echo [7] Disable Windows Updates
 echo [0] Exit
-echo.
-set /p choice=Choose an option: 
+echo ============================================
+set /p choice=Enter your choice: 
 
-if "%choice%"=="1" call :ResetPassword & goto MainMenu
-if "%choice%"=="2" call :RenameUser & goto MainMenu
-if "%choice%"=="3" call :CreateNewUser & goto MainMenu
-if "%choice%"=="4" call :DeleteUser & goto MainMenu
-if "%choice%"=="5" call :DefenderControl & goto MainMenu
-if "%choice%"=="6" call :ActivateOffline & goto MainMenu
-if "%choice%"=="7" call :ActivateOnline & goto MainMenu
-if "%choice%"=="0" exit /b
+if "%choice%"=="1" goto SYSINFO
+if "%choice%"=="2" goto ACTIVATE
+if "%choice%"=="3" goto IDM
+if "%choice%"=="4" goto DISABLEDEFENDER
+if "%choice%"=="5" goto RESETPASSWORD
+if "%choice%"=="6" goto CLEAN
+if "%choice%"=="7" goto DISABLEUPDATE
+if "%choice%"=="0" exit
+goto MENU
 
-echo Invalid option, try again.
-pause
-goto MainMenu
-
-:: -----------------------
-:: Function Definitions
-
-:CheckForUpdates
-echo Checking for updates...
-powershell -Command ^
-  "try {^
-    $remoteVersion = (Invoke-WebRequest -UseBasicParsing '%versionUrl%').Content.Trim(); ^
-    if ([version]'%version%' -lt [version]$remoteVersion) { ^
-        Write-Host 'Update found! Downloading new version...'; ^
-        Invoke-WebRequest -Uri '%updateUrl%' -OutFile 'update_temp.bat' -UseBasicParsing; ^
-        Start-Sleep -Seconds 1; ^
-        Move-Item -Force 'update_temp.bat' '%scriptName%'; ^
-        Write-Host 'Update applied. Please restart the script.'; ^
-        exit 2; ^
-    } else { ^
-        Write-Host 'You have the latest version.'; ^
-    } ^
-  } catch { ^
-    Write-Host 'Update check failed: ' $_.Exception.Message; ^
-  }"
-if %errorlevel%==2 (
-    echo.
-    echo Script updated successfully. Please restart.
-    exit /b
-)
-echo.
-
-exit /b
-
-:ResetPassword
+:SYSINFO
 cls
-echo *** Reset User Password to Blank ***
-echo.
-set /p "username=Enter username to reset password: "
-if "%username%"=="" (
-    echo Username cannot be empty.
-    pause
-    exit /b
-)
-net user "%username%" "" >nul 2>&1
-if %errorlevel% neq 0 (
-    echo User "%username%" not found or error resetting password.
-) else (
-    echo Password for "%username%" reset to blank.
-)
-pause
-exit /b
+powershell -Command "Get-ComputerInfo | Select-Object CsName, WindowsProductName, WindowsVersion, OsArchitecture | Format-List"
+goto FOOTER
 
-:RenameUser
+:ACTIVATE
 cls
-echo *** Rename User Account ***
-echo.
-set /p "oldname=Enter existing username: "
-if "%oldname%"=="" (
-    echo Username cannot be empty.
-    pause
-    exit /b
-)
-set /p "newname=Enter new username: "
-if "%newname%"=="" (
-    echo New username cannot be empty.
-    pause
-    exit /b
-)
-wmic useraccount where name="%oldname%" rename "%newname%" >nul 2>&1
-if %errorlevel% neq 0 (
-    echo Failed to rename user "%oldname%" to "%newname%".
-) else (
-    echo User "%oldname%" renamed to "%newname%".
-)
-pause
-exit /b
+echo Activating Windows & Office Online...
+powershell -Command "irm https://get.activated.win | iex"
+goto FOOTER
 
-:CreateNewUser
+:IDM
 cls
-echo *** Create New User Account ***
-echo.
-set /p "newuser=Enter new username: "
-if "%newuser%"=="" (
-    echo Username cannot be empty.
-    pause
-    exit /b
-)
-set /p "newpass=Enter password (leave blank for no password): "
-net user "%newuser%" "%newpass%" /add >nul 2>&1
-if %errorlevel% neq 0 (
-    echo Failed to create user "%newuser%".
-) else (
-    echo User "%newuser%" created successfully.
-)
-pause
-exit /b
+echo Activating IDM Online...
+powershell -Command "iex(irm is.gd/idm_reset)"
+goto FOOTER
 
-:DeleteUser
+:DISABLEDEFENDER
 cls
-echo *** Delete User Account ***
-echo.
-set /p "deluser=Enter username to delete: "
-if "%deluser%"=="" (
-    echo Username cannot be empty.
-    pause
-    exit /b
-)
-net user "%deluser%" /delete >nul 2>&1
-if %errorlevel% neq 0 (
-    echo Failed to delete user "%deluser%".
-) else (
-    echo User "%deluser%" deleted successfully.
-)
-pause
-exit /b
-
-:DefenderControl
-cls
-echo *** Microsoft Defender Control Panel ***
-echo.
 echo [1] Disable Temporarily (Real-time protection off)
 echo [2] Disable Permanently (Group Policy style)
-echo [3] Enable Temporarily
-echo [4] Enable Permanently
-echo.
-set /p dchoice=Select an option (1-4): 
+echo [3] Re-enable Temporarily
+echo [4] Re-enable Permanently
+set /p defopt=Select an option (1-4): 
+powershell -Command ^
+    "switch ('%defopt%') { ^
+        '1' { Set-MpPreference -DisableRealtimeMonitoring $true; 'Temporarily disabled' } ^
+        '2' { New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender' -Force | Out-Null; Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender' -Name 'DisableAntiSpyware' -Value 1; 'Permanently disabled' } ^
+        '3' { Set-MpPreference -DisableRealtimeMonitoring $false; 'Temporarily enabled' } ^
+        '4' { Remove-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender' -Name 'DisableAntiSpyware' -ErrorAction SilentlyContinue; 'Permanently enabled' } ^
+        default { 'Invalid option' } }"
+goto FOOTER
 
-if "%dchoice%"=="1" (
-    powershell -Command "Set-MpPreference -DisableRealtimeMonitoring $true"
-    echo Real-time protection disabled temporarily.
-) else if "%dchoice%"=="2" (
-    powershell -Command "New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender' -Force | Out-Null; Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender' -Name 'DisableAntiSpyware' -Value 1"
-    echo Microsoft Defender disabled permanently. Restart required.
-) else if "%dchoice%"=="3" (
-    powershell -Command "Set-MpPreference -DisableRealtimeMonitoring $false"
-    echo Real-time protection enabled temporarily.
-) else if "%dchoice%"=="4" (
-    powershell -Command "Remove-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender' -Name 'DisableAntiSpyware' -ErrorAction SilentlyContinue"
-    echo Microsoft Defender enabled permanently. Restart required.
-) else (
-    echo Invalid option.
-)
-pause
-exit /b
-
-:ActivateOffline
+:RESETPASSWORD
 cls
-echo *** Activate Windows / Office (Offline) ***
-echo.
-:: Run your offline activation script here, assuming it's called activate-offline.cmd
-if exist activate-offline.cmd (
-    call activate-offline.cmd
-) else (
-    echo Offline activation script not found!
-)
-pause
-exit /b
+echo Resetting all local user passwords to blank...
+powershell -Command ^
+  "$users = Get-LocalUser | Where-Object { -not $_.Disabled -and $_.Name -ne 'Administrator' }; ^
+   foreach ($user in $users) { ^
+     try { ^
+       net user $user.Name \"\" ^
+       Write-Host \"Password cleared for: $($user.Name)\" -ForegroundColor Green ^
+     } catch { Write-Host \"Failed for: $($user.Name)\" -ForegroundColor Red } }"
+goto FOOTER
 
-:ActivateOnline
+:CLEAN
 cls
-echo *** Online Activation for Windows & Office ***
+echo Cleaning Temp, Recycle Bin & Windows Update Cache...
+powershell -Command ^
+  "Get-ChildItem -Path $env:TEMP -Recurse -Force -ErrorAction SilentlyContinue | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue; ^
+   Clear-RecycleBin -Force -ErrorAction SilentlyContinue; ^
+   Remove-Item 'C:\Windows\SoftwareDistribution\Download\*' -Recurse -Force -ErrorAction SilentlyContinue"
+echo Done.
+goto FOOTER
+
+:DISABLEUPDATE
+cls
+echo Disabling Windows Updates...
+sc stop wuauserv >nul
+sc config wuauserv start= disabled >nul
+echo Windows Updates Disabled.
+goto FOOTER
+
+:FOOTER
 echo.
-echo Running online activation script...
-powershell -Command "irm https://get.activated.win | iex"
-echo.
+echo ============================================
+echo ==> Made with ^<3 by Chimayu | Yunique All-in-One v1.0
 pause
-exit /b
+goto MENU
