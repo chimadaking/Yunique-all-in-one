@@ -1,105 +1,107 @@
 @echo off
-title Yunique All-in-One v1.0
-:: Auto-elevate to Admin
+:: Yunique All-in-One Tool v1.0
+:: Author: Chimayu | Updated for professional structure & beginner safety
+:: Description: System utility script with admin auto-elevation
+
+:: === Auto-Elevate to Admin ===
 net session >nul 2>&1
 if %errorlevel% neq 0 (
-    echo Requesting administrator privileges...
+    echo.
+    echo [!] Administrator privileges required. Requesting elevation...
     powershell -Command "Start-Process '%~f0' -Verb RunAs"
     exit /b
 )
 
 :MENU
 cls
-echo ============================================
-echo         Yunique All-in-One v1.0
-echo ============================================
-echo [1] Show System Info
+color 0A
+setlocal EnableDelayedExpansion
+
+:: === Main Menu ===
+echo ====================================================
+echo             Yunique All-in-One Utility v1.0
+echo ====================================================
+echo [1] View System Information
 echo [2] Activate Windows & Office (Online)
-echo [3] Activate IDM (Online)
-echo [4] Disable Microsoft Defender (Temp/Permanent)
-echo [5] Reset All Local User Passwords to Blank
-echo [6] Clean Temp, Recycle Bin & Old Updates
-echo [7] Disable Windows Updates
+echo [3] Activate Internet Download Manager (Online)
+echo [4] Toggle Microsoft Defender Protection
+echo [5] Reset Local User Passwords to Blank
+echo [6] Clean System (Temp, Recycle Bin, Update Cache)
+echo [7] Disable Windows Update Service
 echo [0] Exit
-echo ============================================
-set /p choice=Enter your choice: 
+echo ====================================================
+set /p choice=Enter your choice (0-7): 
 
 if "%choice%"=="1" goto SYSINFO
 if "%choice%"=="2" goto ACTIVATE
 if "%choice%"=="3" goto IDM
-if "%choice%"=="4" goto DISABLEDEFENDER
-if "%choice%"=="5" goto RESETPASSWORD
-if "%choice%"=="6" goto CLEAN
-if "%choice%"=="7" goto DISABLEUPDATE
+if "%choice%"=="4" goto DEFENDER
+if "%choice%"=="5" goto RESETPASS
+if "%choice%"=="6" goto CLEANUP
+if "%choice%"=="7" goto DISABLEUPDATES
 if "%choice%"=="0" exit
+
+echo Invalid choice. Please try again.
+pause
 goto MENU
 
 :SYSINFO
 cls
-powershell -Command "Get-ComputerInfo | Select-Object CsName, WindowsProductName, WindowsVersion, OsArchitecture | Format-List"
+echo [System Information]
+powershell -NoProfile -Command "Get-ComputerInfo | Select-Object CsName, WindowsProductName, WindowsVersion, OsArchitecture | Format-List"
 goto FOOTER
 
 :ACTIVATE
 cls
-echo Activating Windows & Office Online...
-powershell -Command "irm https://get.activated.win | iex"
+echo [Activating Windows & Office...]
+powershell -NoProfile -Command "irm https://get.activated.win | iex"
 goto FOOTER
 
 :IDM
 cls
-echo Activating IDM Online...
-powershell -Command "iex(irm is.gd/idm_reset)"
+echo [Activating IDM...]
+powershell -NoProfile -Command "iex(irm is.gd/idm_reset)"
 goto FOOTER
 
-:DISABLEDEFENDER
+:DEFENDER
 cls
-echo [1] Disable Temporarily (Real-time protection off)
-echo [2] Disable Permanently (Group Policy style)
-echo [3] Re-enable Temporarily
-echo [4] Re-enable Permanently
-set /p defopt=Select an option (1-4): 
-powershell -Command ^
-    "switch ('%defopt%') { ^
-        '1' { Set-MpPreference -DisableRealtimeMonitoring $true; 'Temporarily disabled' } ^
-        '2' { New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender' -Force | Out-Null; Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender' -Name 'DisableAntiSpyware' -Value 1; 'Permanently disabled' } ^
-        '3' { Set-MpPreference -DisableRealtimeMonitoring $false; 'Temporarily enabled' } ^
-        '4' { Remove-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender' -Name 'DisableAntiSpyware' -ErrorAction SilentlyContinue; 'Permanently enabled' } ^
-        default { 'Invalid option' } }"
+echo [Toggle Microsoft Defender Options]
+echo  [1] Disable Temporarily
+set "opt=0"
+echo  [2] Disable Permanently
+set /p opt=Select an option (1-4): 
+if "%opt%"=="1" (powershell -NoProfile -Command "Set-MpPreference -DisableRealtimeMonitoring $true")
+if "%opt%"=="2" (powershell -NoProfile -Command "Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender' -Name DisableAntiSpyware -Value 1")
+if "%opt%"=="3" (powershell -NoProfile -Command "Set-MpPreference -DisableRealtimeMonitoring $false")
+if "%opt%"=="4" (powershell -NoProfile -Command "Remove-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender' -Name DisableAntiSpyware -ErrorAction SilentlyContinue")
+if "%opt%"=="" goto DEFENDER
 goto FOOTER
 
-:RESETPASSWORD
+:RESETPASS
 cls
-echo Resetting all local user passwords to blank...
-powershell -Command ^
-  "$users = Get-LocalUser | Where-Object { -not $_.Disabled -and $_.Name -ne 'Administrator' }; ^
-   foreach ($user in $users) { ^
-     try { ^
-       net user $user.Name \"\" ^
-       Write-Host \"Password cleared for: $($user.Name)\" -ForegroundColor Green ^
-     } catch { Write-Host \"Failed for: $($user.Name)\" -ForegroundColor Red } }"
+echo [Resetting Local User Passwords to Blank...]
+powershell -NoProfile -Command "Get-LocalUser | Where-Object { -not $_.Disabled -and $_.Name -ne 'Administrator' } | ForEach-Object { net user $_.Name \"\" }"
+echo Operation complete.
 goto FOOTER
 
-:CLEAN
+:CLEANUP
 cls
-echo Cleaning Temp, Recycle Bin & Windows Update Cache...
-powershell -Command ^
-  "Get-ChildItem -Path $env:TEMP -Recurse -Force -ErrorAction SilentlyContinue | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue; ^
-   Clear-RecycleBin -Force -ErrorAction SilentlyContinue; ^
-   Remove-Item 'C:\Windows\SoftwareDistribution\Download\*' -Recurse -Force -ErrorAction SilentlyContinue"
-echo Done.
+echo [Cleaning Temporary Files, Recycle Bin, and Update Cache...]
+powershell -NoProfile -Command "Get-ChildItem -Path $env:TEMP -Recurse -Force -ErrorAction SilentlyContinue | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue; Clear-RecycleBin -Force; Remove-Item 'C:\Windows\SoftwareDistribution\Download\*' -Recurse -Force -ErrorAction SilentlyContinue"
+echo Cleanup complete.
 goto FOOTER
 
-:DISABLEUPDATE
+:DISABLEUPDATES
 cls
-echo Disabling Windows Updates...
+echo [Disabling Windows Update Service...]
 sc stop wuauserv >nul
 sc config wuauserv start= disabled >nul
-echo Windows Updates Disabled.
+echo Windows Update service disabled.
 goto FOOTER
 
 :FOOTER
 echo.
-echo ============================================
-echo ==> Made with ^<3 by Chimayu | Yunique All-in-One v1.0
+echo ====================================================
+echo     Script by Chimayu | Yunique Utility v1.0
 pause
 goto MENU
